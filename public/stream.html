@@ -1,0 +1,78 @@
+<html>
+<head>
+</head>
+<body>
+<script>
+/*
+   Apache 2 License (C) 2013 Google, Inc.
+*/
+
+
+window.onload = init;
+var context;
+var bufferLoader;
+var index = 0;
+var buffers = [];
+var len = 4096;
+function init() {
+    try {
+        // Fix up prefixing
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        context = new AudioContext();
+    } catch (e) {
+        alert("WEbaudio"+e);
+    }
+    reqSoundRep();
+    scriptNodeStream();
+    //setInterval(reqSoundRep,(len)/44100 * 1000);
+}
+
+function reqSoundRep() {
+    reqSound(index);
+}
+
+function reqSound(index) {
+    get("http://localhost:3000/stream/?n="+index);
+}
+
+function get(url) {
+    var request = new XMLHttpRequest();
+    request.open("GET", url, true);
+    request.responseType = "arraybuffer";
+    request.onload = function() {
+        //var buff = request.response;//new Int16Array(request.response);
+        var buff = new Int16Array(request.response);
+        //var buff = new Float32Array(request.response);
+        //var buff = new Int32Array(request.response);
+        
+        buffers.push(buff);
+        index++;//= buff.length;
+    };
+    request.onerror = function() {
+        alert('Didnt get '+url);
+    };
+    request.send();    
+}
+
+function scriptNodeStream() {
+    var rate = 44100;
+    var node = context.createScriptProcessor(len, 0, 1);
+
+
+    node.onaudioprocess = function(event) {
+        if (buffers.length > 0) {
+            var buff = buffers.shift();
+            //for (var i = 0; i < len; i++) {
+            //    b2[i] = buff[i];
+            //}
+            event.outputBuffer.getChannelData(0).set(buff);
+        }
+        reqSoundRep();
+    };
+    node.connect(context.destination);    
+
+}
+
+</script>
+</body>
+</html>

@@ -54,9 +54,15 @@ function scriptNodeStream() {
                     Math.PI*2*80.0*i/44100.0)); 
     }
     var t = 0;    
+    var n = 32;
     node.onaudioprocess = function(event) {
         t = ( t + 1 );
-        var freq = t % 32;
+        var freq = t % n;
+        if (Math.random() > 0.9) {
+            n = n * 2;
+        } else {
+            n = 32;
+        }
         event.outputBuffer.getChannelData(0).set(audioChunk);
         for (var i = 0 ; i < len ; i++) {
             audioChunk[i] =
