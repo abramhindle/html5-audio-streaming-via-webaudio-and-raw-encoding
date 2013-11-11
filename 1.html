@@ -1,0 +1,61 @@
+<html>
+<head>
+</head>
+<body>
+<script src="buffer-loader.js"></script>
+
+<script>
+/*
+   Apache 2 License (C) 2013 Google, Inc.
+*/
+
+
+window.onload = init;
+var context;
+var bufferLoader;
+
+function init() {
+    try {
+        // Fix up prefixing
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        context = new AudioContext();
+    } catch (e) {
+        alert("WEbaudio"+e);
+    }
+    /* try { */
+    
+        bufferLoader = new BufferLoader(
+            context,
+            [
+                './squeakkick2.wav',
+            ],
+            finishedLoading
+        );      
+    bufferLoader.load();
+    /* } catch (e) {
+        alert(e);
+    } */
+
+}
+
+function finishedLoading(bufferList) {
+  // Create two sources and play them both together.
+  var source1 = context.createBufferSource();
+  source1.buffer = bufferList[0];
+  source1.connect(context.destination);
+  source1.start(0);
+  var audioBuffer = context.createBuffer(1, 44100, 44100);
+  var audioChunk = new Array(44100);
+  for (var i = 0 ; i < 44100 ; i++) {
+      audioChunk[i] = 0.1*Math.sin(Math.PI*2*440.0*i/44100.0);
+  }
+  audioBuffer.getChannelData(0).set(audioChunk);
+  var source2 = context.createBufferSource();
+  source2.buffer = audioBuffer;
+  source2.connect(context.destination);
+  source2.start(0);   
+}
+
+</script>
+</body>
+</html>
