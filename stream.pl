@@ -4,18 +4,14 @@
 # This program is free software, you can redistribute it and/or modify it
 # under the terms of the Artistic License version 2.0.
 #
+# Stupidly stream raw audio over XHTTPRequest
 #
 # To start this webservice just run:
-#   hypnotoad -f stream.pl
+#   hypnotoad -f stream.pl rawfile.raw
 # or
-#   perl stream.pl daemon
+#   perl stream.pl daemon rawfile.raw
+# 
 
-#!/usr/bin/env perl
-# Copyright (C) 2013 Abram Hindle
-#
-# This program is free software, you can redistribute it and/or modify it
-# under the terms of the Artistic License version 2.0.
-#
 
 use Mojolicious::Lite;
 use strict;
@@ -36,12 +32,12 @@ foreach my $file (@ARGV) {
 
 
 sub responder {
-  my $self = shift;
-  my $params = $self->req->params;
-  my $x = $params->param('n');
-  warn $x;
-  $x = $x % scalar(@buffers);
-  $self->respond_to(any => {data=>$buffers[$x]}, status => 200);
+    my $self = shift;
+    my $params = $self->req->params;
+    my $x = $params->param('n');
+    warn $x;
+    $x = $x % scalar(@buffers);
+    $self->respond_to(any => {data=>$buffers[$x]}, status => 200);
 }
 
 get "/stream/" => sub {

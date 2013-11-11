@@ -1,0 +1,16 @@
+This project is about streaming audio to the web with an attempt to keep the latency down.
+
+This can be achieved by reducing encoding latency and using websockets or webrtc, but right now I'm trying the most basic thing, using XMLHTTPRequest for now. 
+
+Currently it works on Firefox 25 and Chromium 28.
+
+perl stream.pl daemon sine.raw
+
+http://localhost:3000/stream.html
+
+
+Licenses: 
+
+stream.pl: Artistic License version 2.0 (Same license as a perl and Mojolicious), 
+1.html: Apache 2 License
+stream.html: Apache 2 License 

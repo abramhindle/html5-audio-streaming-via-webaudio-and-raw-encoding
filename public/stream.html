@@ -4,7 +4,7 @@
 <body>
 <script>
 /*
-   Apache 2 License (C) 2013 Google, Inc.
+   Apache 2 License (C) 2013 Google, Abram Hindle
 */
 
 
@@ -22,9 +22,13 @@ function init() {
     } catch (e) {
         alert("WEbaudio"+e);
     }
-    reqSoundRep();
-    scriptNodeStream();
-    //setInterval(reqSoundRep,(len)/44100 * 1000);
+    try {
+        reqSoundRep();
+        scriptNodeStream();
+        //setInterval(reqSoundRep,(len)/44100 * 1000);
+    } catch (e) {
+        alert("ScriptNodeStream:" + e);
+    }
 }
 
 function reqSoundRep() {
@@ -40,13 +44,13 @@ function get(url) {
     request.open("GET", url, true);
     request.responseType = "arraybuffer";
     request.onload = function() {
-        //var buff = request.response;//new Int16Array(request.response);
-        var buff = new Int16Array(request.response);
-        //var buff = new Float32Array(request.response);
-        //var buff = new Int32Array(request.response);
-        
-        buffers.push(buff);
-        index++;//= buff.length;
+        try {
+            var buff = new Int16Array(request.response);
+            buffers.push(buff);
+            index++;//= buff.length;
+        } catch (e) {
+            alert(e);
+        };
     };
     request.onerror = function() {
         alert('Didnt get '+url);
@@ -57,20 +61,20 @@ function get(url) {
 function scriptNodeStream() {
     var rate = 44100;
     var node = context.createScriptProcessor(len, 0, 1);
-
-
     node.onaudioprocess = function(event) {
-        if (buffers.length > 0) {
-            var buff = buffers.shift();
-            //for (var i = 0; i < len; i++) {
-            //    b2[i] = buff[i];
-            //}
-            event.outputBuffer.getChannelData(0).set(buff);
-        }
-        reqSoundRep();
+        try {
+            if (buffers.length > 0) {            
+                var buff = buffers.shift();
+                event.outputBuffer.getChannelData(0).set(buff);
+            } else {
+                //alert("Empty");
+            }
+            reqSoundRep();
+        } catch(e) {
+            alert(e);
+        };
     };
     node.connect(context.destination);    
-
 }
 
 </script>
