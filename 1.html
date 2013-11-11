@@ -24,18 +24,48 @@ function init() {
     }
     /* try { */
     
-        bufferLoader = new BufferLoader(
-            context,
-            [
-                './squeakkick2.wav',
-            ],
-            finishedLoading
-        );      
+    /*
+    bufferLoader = new BufferLoader(
+        context,
+        [
+            './squeakkick2.wav',
+        ],
+        finishedLoading
+    );      
     bufferLoader.load();
+    */
+    sineStream();
+    scriptNodeStream();
     /* } catch (e) {
         alert(e);
     } */
 
+}
+
+function scriptNodeStream() {
+    var len = 1024;
+    var rate = 44100;
+    var node = context.createScriptProcessor(len, 0, 1);
+    var audioChunk = new Array(len);
+    for (var i = 0 ; i < len ; i++) {
+        audioChunk[i] =
+            Math.sin(
+                Math.PI*2*Math.cos(
+                    Math.PI*2*80.0*i/44100.0)); 
+    }
+    var t = 0;    
+    node.onaudioprocess = function(event) {
+        t = ( t + 1 );
+        var freq = t % 32;
+        event.outputBuffer.getChannelData(0).set(audioChunk);
+        for (var i = 0 ; i < len ; i++) {
+            audioChunk[i] =
+                Math.sin( Math.sin(Math.PI * i / len) *
+                    Math.PI*2*Math.cos(
+                        Math.PI*2*(80.0+freq)*i/44100.0)); 
+        }
+    };
+    node.connect(context.destination);    
 }
 
 function finishedLoading(bufferList) {
@@ -44,16 +74,44 @@ function finishedLoading(bufferList) {
   source1.buffer = bufferList[0];
   source1.connect(context.destination);
   source1.start(0);
+}
+function sineStream() {
   var audioBuffer = context.createBuffer(1, 44100, 44100);
   var audioChunk = new Array(44100);
   for (var i = 0 ; i < 44100 ; i++) {
-      audioChunk[i] = 0.1*Math.sin(Math.PI*2*440.0*i/44100.0);
+      audioChunk[i] =
+      Math.sin(
+          Math.PI*2*Math.cos(
+              Math.PI*2*80.0*i/44100.0)); 
   }
   audioBuffer.getChannelData(0).set(audioChunk);
   var source2 = context.createBufferSource();
   source2.buffer = audioBuffer;
+  source2.loop = 0;
   source2.connect(context.destination);
-  source2.start(0);   
+  source2.start(0);
+  var f;
+  f =function() {
+      var y = Math.random();
+      for (var i = 0 ; i < 44100 ; i++) {
+          audioChunk[i] = 0.1 * Math.sin(Math.PI*i/44100) * // envelope
+              Math.sin( Math.PI*2*(60+y*160.0)*i/44100.0);
+      }
+      audioBuffer.getChannelData(0).set(audioChunk);
+      //source2.stop(0);
+      var source3 = context.createBufferSource();
+      source3.buffer = audioBuffer;
+      source3.loop = 0;
+      source3.connect(context.destination);
+      source3.start(0);
+      //if (Math.random() > 0.7) {
+      //    setTimeout(f, Math.random()*1000);      
+      //    setTimeout(f, Math.random()*1000);      
+      //    setTimeout(f, Math.random()*1000);      
+      //}
+  };
+  f(); 
+  setInterval(f, 1500);
 }
 
 </script>
