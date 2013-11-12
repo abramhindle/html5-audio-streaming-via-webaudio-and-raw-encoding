@@ -44,4 +44,24 @@ get "/stream/" => sub {
     responder(@_);
 };
 
+websocket '/ws/' => sub {
+    my ($self) = @_;
+    $self->on(message => 
+              sub {
+                  my ($self, $message) = @_;
+                  my $x = int($message);
+                  #$x =~ s/\s+//g;
+                  $x = $x % scalar(@buffers);
+                  warn "WS: [$x]";
+                  #$self->send( { data => $buffers[$x] } );
+                  eval {
+                      #$self->respond_to( { binary => $buffers[$x] } );
+                      $self->send( { binary => $buffers[$x] } );
+                      #warn "SENT";
+                  };
+                  if ($@) { warn $@ };
+              }
+    );
+};
+
 app->start;
