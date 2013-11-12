@@ -17,8 +17,9 @@ use Mojolicious::Lite;
 use strict;
 use JSON;
 use Data::Dumper;
-my $n = 4096;
-my $sizet = 2;
+#my $n = 4096;
+my $n = 2048;
+my $sizet = 4;
 my @buffers = ();
 foreach my $file (@ARGV) {
     open(FILE,$file);
