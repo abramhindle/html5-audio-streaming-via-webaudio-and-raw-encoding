@@ -1,0 +1,127 @@
+<html>
+<head>
+</head>
+<body>
+<div id="debug"></div>
+<script>
+/*
+   Apache 2 License (C) 2013 Google, Abram Hindle
+*/
+
+
+window.onload = init;
+var context;
+var bufferLoader;
+var index = 0;
+var buffers = [];
+var len = 2048;
+var rate = 44100;
+
+function reqSoundRep() {
+    reqSound(index);
+}
+
+function reqSound(index) {
+    get("http://localhost:3000/stream/?n="+index);
+}
+
+function addBuffer(buffer) {
+    try {
+        //var buff = new Int16Array(buffer);
+        var buff = new Float32Array(buffer);
+        buffers.push(buff);
+        index++;//= buff.length;
+    } catch (e) {
+        alert("Add Buffer:"+e);
+    };
+}
+
+function get(url) {
+    var request = new XMLHttpRequest();
+    request.open("GET", url, true);
+    request.responseType = "arraybuffer";
+    request.onload = function() {
+        addBuffer(request.response);
+    };
+    request.onerror = function() {
+        alert('Didnt get '+url);
+    };
+    request.send();    
+}
+function debug(str) {
+    var debugDiv = document.getElementById('debug');
+    debugDiv.innerHTML = "" + str;
+}
+var wsRep = 0;
+function wsSetup() {
+    var socket = new WebSocket("ws://localhost:3000/ws/");
+    socket.binaryType = "arraybuffer";
+    var connected = false;
+    socket.onopen = function() {
+        socket.send(index);
+        connected = true;
+    };
+    socket.onerror = function(msg) {
+        alert(msg);
+    };
+    socket.onmessage = function(msg) {  
+        //alert(msg.data);
+        try {
+            //debug(msg.data.size);
+            addBuffer(msg.data);
+            debug("SEnding " + index);
+        } catch (e) {
+            alert("socket on message: " + e);
+        }
+    }; 
+    wsRep = function() { 
+        if (connected) {
+            socket.send(index); 
+        }
+    };
+}
+
+function init() {
+    try {
+        // Fix up prefixing
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        context = new AudioContext();
+    } catch (e) {
+        alert("WEbaudio"+e);
+    }
+    try {
+        //scriptNodeStream(reqSoundRep);
+        wsSetup();
+        scriptNodeStream(wsRep);
+        //setInterval(reqSoundRep,(len)/44100 * 1000);
+    } catch (e) {
+        alert("ScriptNodeStream:" + e);
+    }
+}
+
+
+
+
+function scriptNodeStream(cb) {
+    cb();
+    var node = context.createScriptProcessor(len, 0, 1);
+    node.onaudioprocess = function(event) {
+        try {
+            if (buffers.length > 0) {            
+                var buff = buffers.shift();
+                debug(""+buff.length);
+                event.outputBuffer.getChannelData(0).set(buff);
+            } else {
+                //alert("Empty");
+            }
+            cb();
+        } catch(e) {
+            alert("OnAudioProcess:" + e);
+        };
+    };
+    node.connect(context.destination);    
+}
+
+</script>
+</body>
+</html>

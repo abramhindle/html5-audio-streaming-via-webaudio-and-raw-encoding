@@ -8,9 +8,24 @@ perl stream.pl daemon sine.raw
 
 http://localhost:3000/stream.html
 
+For jack (currently doesn't sound right)
+
+MOJO_REACTOR=Mojo::Reactor::Poll perl jack-spammer.pl daemon
 
 Licenses: 
 
 stream.pl: Artistic License version 2.0 (Same license as a perl and Mojolicious), 
 1.html: Apache 2 License
 stream.html: Apache 2 License 
+
+Bugs:
+
+Currently the jack stuff is awful and skipping. We're reimplementing a streaming server so we have to keep state to ensure we're not losing anything. Oh well.
+
+Also Jack is very precarious. 11600 was the wait for the dummy driver to get 2048.
+
+Dependencies:
+
+Mojolicious::Lite
+
+jacks modified: https://github.com/abramhindle/Jacks
