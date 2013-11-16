@@ -14,7 +14,7 @@
 
 use Mojo::Reactor::Poll;
 use Mojolicious::Lite;
-
+use Digest::MD5 qw(md5 md5_hex md5_base64);
 use strict;
 use JSON;
 use Data::Dumper;
@@ -25,23 +25,26 @@ use strict;
 use warnings;
 use Cwd 'abs_path';
 
+#@ARGV = qw(daemon --listen http://*:5000);
 
-my $n = 2048;
+my $n = 512;
 my $sizet = 4;
 #my $buffer = 
 
 my $queue = Thread::Queue->new();
 
 sub addToBuffer {    
-    warn "aTB: ".length($_[0]). " ".$queue->pending;
+    #warn "aTB: ".length($_[0]). " ".$queue->pending;
     $queue->enqueue($_[0]);
 }
 
 sub readFromBuffer {
     my ($index) = @_;
-    my $i = $index % $queue->pending();
-    warn "rFB: $index $i";
-    return $queue->peek($queue->pending()-1);
+    my $pending = $queue->pending();
+    my $i = $index % $pending;
+    # warn "rFB: $index $i ".$pending;
+    #return $queue->peek($queue->pending()-1);
+    return $queue->peek($i);
 }
 
 sub bufferSize {
@@ -66,16 +69,22 @@ my $thr = threads->create(
         my $done = undef;
 
         until($done) {
-
+            
             my $jsevent = $jc->getEvent(-1);
 
             if ($jsevent->getType() == $jacks::PROCESS) {
                 my $inbuffer = $in->getBuffer();
                 my $nframes = $inbuffer->length();
-                warn $nframes;
-                my $dbuffer = "XXYY"x($nframes);
+                #warn $nframes;
+                #my $dbuffer = "XXYY"x($nframes);
+                my $dbuffer = "X"x($nframes);
                 $inbuffer->dumpBuffer($dbuffer);
+                #my $digest = md5_hex($dbuffer);
+                my $digest = "";
+
                 addToBuffer($dbuffer);
+                #addToBuffer(substr($dbuffer,0,$nframes));
+                #warn "$digest -- $nframes ".bufferSize();
             } elsif ($jsevent->getType() == $jacks::SAMPLE_RATE_CHANGE) {
                 my $sr = $jc->getSampleRate();
                 print("sample rate change event: sample rate is now $sr\n");
@@ -114,11 +123,21 @@ get "/stream/" => sub {
 
 websocket '/ws/' => sub {
     my ($self) = @_;
+    my %transactions = ();
     $self->on(message => 
               sub {
                   my ($self, $message) = @_;
-                  my $x = int($message);
-                  warn "WS: [$x]";
+                  # warn keys %transactions;
+                  my $tx = $self->tx;
+                  my $buffSize = bufferSize();
+                  my $last = $transactions{$self->tx} || ($buffSize - 2);
+                  my $x = $last + 1;
+                  if ($buffSize - $x > 25) {
+                      $x = $bufferSize - 1;
+                  }
+                  $transactions{$tx} = $x;
+                  #my $x = int($message);
+                  #warn "WS: [$x] $buffSize";
                   $self->send( { binary => readFromBuffer($x) } );
               }
     );

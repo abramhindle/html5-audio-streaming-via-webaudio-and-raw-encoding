@@ -15,6 +15,7 @@ var bufferLoader;
 var index = 0;
 var buffers = [];
 var len = 2048;
+var len = 512;
 var rate = 44100;
 
 function reqSoundRep() {
@@ -111,6 +112,7 @@ function scriptNodeStream(cb) {
                 var buff = buffers.shift();
                 debug(""+buff.length);
                 event.outputBuffer.getChannelData(0).set(buff);
+                buff = null;
             } else {
                 //alert("Empty");
             }
