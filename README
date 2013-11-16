@@ -29,3 +29,7 @@ Dependencies:
 Mojolicious::Lite
 
 jacks modified: https://github.com/abramhindle/Jacks
+
+Anecdotal Performance:
+
+Less than 1 second localhost performance. This is better than darkice/icecast usually.
