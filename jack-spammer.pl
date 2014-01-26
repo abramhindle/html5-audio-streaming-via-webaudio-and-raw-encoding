@@ -13,6 +13,7 @@
 # 
 
 use Mojo::Reactor::Poll;
+use Mojo::IOLoop;
 use Mojolicious::Lite;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
 use strict;
@@ -27,15 +28,20 @@ use Cwd 'abs_path';
 
 #@ARGV = qw(daemon --listen http://*:5000);
 
-my $n = 512;
+my $n = 4096;
 my $sizet = 4;
 #my $buffer = 
 
 my $queue = Thread::Queue->new();
+my %transactions = ();
+
+#my $reactor = Mojo::Reactor::Poll->new;
 
 sub addToBuffer {    
+    my $d = $_[0];
     #warn "aTB: ".length($_[0]). " ".$queue->pending;
-    $queue->enqueue($_[0]);
+    $queue->enqueue($d);
+  
 }
 
 sub readFromBuffer {
@@ -123,24 +129,44 @@ get "/stream/" => sub {
 
 websocket '/ws/' => sub {
     my ($self) = @_;
-    my %transactions = ();
+    # make a queue here and just add to it.
+    # when we get something send it.
     $self->on(message => 
               sub {
                   my ($self, $message) = @_;
                   # warn keys %transactions;
                   my $tx = $self->tx;
-                  my $buffSize = bufferSize();
-                  my $last = $transactions{$self->tx} || ($buffSize - 2);
-                  my $x = $last + 1;
-                  if ($buffSize - $x > 25) {
-                      $x = $bufferSize - 1;
-                  }
-                  $transactions{$tx} = $x;
+                  #my $buffSize = bufferSize();
+                  #my $last = $transactions{$self->tx} || ($buffSize - 2);
+                  #my $x = $last + 1;
+                  #if ($buffSize - $x > 25) {
+                  #    $x = $buffSize - 1;
+                  #}
+		  warn $tx;
+                  $transactions{$tx} = $self;
                   #my $x = int($message);
                   #warn "WS: [$x] $buffSize";
-                  $self->send( { binary => readFromBuffer($x) } );
+                  #$self->send( { binary => readFromBuffer($x) } );
               }
     );
+    $self->on(finish => sub {
+        my ($ws, $code, $reason) = @_;
+        my $tx = $ws->tx;
+        delete $transactions{$tx};
+    });
+    my $id = Mojo::IOLoop->recurring( ($n/(2.0*44100.0)) => sub {
+        my $pending = $queue->pending();
+        while( $pending > 0 ) {
+            my $d = $queue->dequeue_nb();
+            for my $tx (keys %transactions) {
+                warn "send $tx";
+		my $t = $transactions{$tx};
+                $t->send( { binary => $d } );
+            }
+            $pending = $queue->pending();
+        }
+    });
+
 };
 
-app->start;
+app->start();

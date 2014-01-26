@@ -3,27 +3,32 @@
 </head>
 <body>
 <div id="debug"></div>
+<div id="debug1"></div>
+<div id="debug2"></div>
+<div id="debug3"></div>
+<div id="debug4"></div>
 <script>
 /*
    Apache 2 License (C) 2013 Google, Abram Hindle
 */
 
 
-window.onload = init;
 var context;
 var bufferLoader;
 var index = 0;
 var buffers = [];
 var len = 2048;
 var len = 512;
+var len = 512;
+var len = 4096;
 var rate = 44100;
-
+var host =window.location.host;
 function reqSoundRep() {
     reqSound(index);
 }
 
 function reqSound(index) {
-    get("http://localhost:3000/stream/?n="+index);
+    get("http://"+host+"/stream/?n="+index);
 }
 
 function addBuffer(buffer) {
@@ -32,6 +37,7 @@ function addBuffer(buffer) {
         var buff = new Float32Array(buffer);
         buffers.push(buff);
         index++;//= buff.length;
+	debug4(sum(buff));
     } catch (e) {
         alert("Add Buffer:"+e);
     };
@@ -53,9 +59,25 @@ function debug(str) {
     var debugDiv = document.getElementById('debug');
     debugDiv.innerHTML = "" + str;
 }
+function debug1(str) {
+    var debugDiv = document.getElementById('debug1');
+    debugDiv.innerHTML = "" + str;
+}
+function debug2(str) {
+    var debugDiv = document.getElementById('debug2');
+    debugDiv.innerHTML = "" + str;
+}
+function debug3(str) {
+    var debugDiv = document.getElementById('debug3');
+    debugDiv.innerHTML = "" + str;
+}
+function debug4(str) {
+    var debugDiv = document.getElementById('debug4');
+    debugDiv.innerHTML = "" + str;
+}
 var wsRep = 0;
 function wsSetup() {
-    var socket = new WebSocket("ws://localhost:3000/ws/");
+    var socket = new WebSocket("ws://"+host+"/ws/");
     socket.binaryType = "arraybuffer";
     var connected = false;
     socket.onopen = function() {
@@ -68,9 +90,9 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         //alert(msg.data);
         try {
-            //debug(msg.data.size);
+            debug4(msg.data.byteLength);
             addBuffer(msg.data);
-            debug("SEnding " + index);
+            debug1("Add Buffer " + index);
         } catch (e) {
             alert("socket on message: " + e);
         }
@@ -100,20 +122,41 @@ function init() {
     }
 }
 
+function sum(v) {
+	var s = 0.0;
+	for (var i = 0 ; i < len ; i++) {
+		s += v[i];
+	}
+	return s;
+}
+function zeros(len) {
+	var zerodarray = new Float32Array(len);
+	for (var i = 0 ; i < len ; i++) {
+		zerodarray[i] = 0.0;
+	}
+	return zerodarray;
+}
 
 
 
+var lastbuff = zeros(len);
+var lastTime = 0;
 function scriptNodeStream(cb) {
     cb();
     var node = context.createScriptProcessor(len, 0, 1);
     node.onaudioprocess = function(event) {
+	debug(event.playbackTime - lastTime);
+	lastTime = event.playbackTime;
         try {
             if (buffers.length > 0) {            
                 var buff = buffers.shift();
-                debug(""+buff.length);
+		debug2("Playing maybe " + (index - buffers.length) + " / " + index + " " + buffers.length);
+                debug3("Buff length "+buff.length + " " + sum(buff));
                 event.outputBuffer.getChannelData(0).set(buff);
-                buff = null;
+                //buff = null;
             } else {
+		debug3("EMPTY!");
+                event.outputBuffer.getChannelData(0).set(lastbuff);
                 //alert("Empty");
             }
             cb();
@@ -123,6 +166,7 @@ function scriptNodeStream(cb) {
     };
     node.connect(context.destination);    
 }
+window.onload = init;
 
 </script>
 </body>
