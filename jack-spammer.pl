@@ -28,7 +28,9 @@ use Cwd 'abs_path';
 
 #@ARGV = qw(daemon --listen http://*:5000);
 
-my $n = 4096;
+#my $n = 4096;
+#my $n = 1024;;
+my $n = 256;
 my $sizet = 4;
 #my $buffer = 
 
