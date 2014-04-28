@@ -1,0 +1,285 @@
+<html>
+<head>
+</head>
+<body>
+<div id="debug"></div>
+<div id="debug1"></div>
+<div id="debug2"></div>
+<div id="debug3"></div>
+<div id="debug4"></div>
+<div id="debug5"></div>
+<div id="debug6"></div>
+<div id="stat"></div>
+<script>
+/*
+   Apache 2 License (C) 2013 Google, Abram Hindle
+*/
+
+
+var context;
+var bufferLoader;
+var index = 0;
+var buffers = [];
+var len = 2048;
+var len = 512;
+var len = 512;
+var len = 4096;
+var len = 1024;
+var len = 256;
+var rate = 44100;
+var host =window.location.host;
+var hostname =window.location.hostname;
+var oscport = 8000;
+var hosts = [
+    "slave01"
+];
+
+
+function reqSoundRep() {
+    reqSound(index);
+}
+
+function reqSound(index) {
+    get("http://"+host+"/stream/?n="+index);
+}
+var sumdebugcb = function(buffer) {
+    debug5(sum(buffer));
+}
+var abCallback = function(buffer) {
+    abCallback = sumdebugcb;
+    // delay the start of the ping test
+    window.setTimeout(initPinger(),4000);
+};
+function now() {
+    var d = new Date();
+    return d.getTime();
+}
+function startPinger() {
+    var ping = {};
+    ping.start = now();
+    ping.watching = 1;
+    ping.host = hosts[0];
+    sendPing(hosts[0]);
+    abCallback = function(buffer) {
+        var s = sum(buffer);
+        debug5(s);
+        if (s > 0.1 && ping.watching) {
+            var end = now();
+            var diff = end - ping.start;
+            stat("Diff:"+diff+" [ " + s + " ] " + end + " "+ ping.start);
+            ping.watching = undefined;
+            abCallback = sumdebugcb;
+            window.setTimeout(startPinger,10*diff);
+        } else {
+            
+        }
+    };
+    stat("Ping sent");
+}
+function initPinger() {
+    var d = new Date();
+    abcallback = sumdebugcb;
+    silence();
+    // delay the start of the ping test
+    window.setTimeout(startPinger,4000);
+};
+var pinger = {};
+function sendPing(ourHost) {
+    sendUpdate(ourHost, "/ping/freq", 666);
+}
+function silence() {
+    stat("Silence!");
+    for (var i = 0; i < hosts.length; i++) {
+        sendUpdate(hosts[i], "/grain/gkAmp", 0);
+    }
+}
+
+function addBuffer(buffer) {
+    try {
+        if (buffers.length > 20) {
+            while (buffers.length > 0) {
+                buffers.shift();
+                debug6("Dumping!");
+            }
+        }
+        //var buff = new Int16Array(buffer);
+        var buff = new Float32Array(buffer);
+        buffers.push(buff);
+        index++;//= buff.length;
+        //abCallback(buffer);
+    } catch (e) {
+        alert("Add Buffer:"+e);
+    };
+}
+
+function sendUpdate(oschost, path, value) {
+    var msg = {"queue":[[oschost,path,"f",value]]};
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState==4) {
+            try {
+                if (xhr.status==200) {
+                    var text = xhr.responseText;
+                }
+            } 
+            catch(e) {
+                alert('Error: ' + e.name);
+            }
+        }
+    };
+    xhr.open("POST","http://"+hostname+":"+oscport+"/osc");
+    xhr.overrideMimeType("application/json");
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.send( JSON.stringify( msg ) );
+}
+function get(url) {
+    var request = new XMLHttpRequest();
+    request.open("GET", url, true);
+    request.responseType = "arraybuffer";
+    request.onload = function() {
+        addBuffer(request.response);
+    };
+    request.onerror = function() {
+        alert('Didnt get '+url);
+    };
+    request.send();    
+}
+function debug(str) {
+    var debugDiv = document.getElementById('debug');
+    debugDiv.innerHTML = "" + str;
+}
+function debug1(str) {
+    var debugDiv = document.getElementById('debug1');
+    debugDiv.innerHTML = "" + str;
+}
+function debug2(str) {
+    var debugDiv = document.getElementById('debug2');
+    debugDiv.innerHTML = "" + str;
+}
+function debug3(str) {
+    var debugDiv = document.getElementById('debug3');
+    debugDiv.innerHTML = "" + str;
+}
+function debug4(str) {
+    var debugDiv = document.getElementById('debug4');
+    debugDiv.innerHTML = "" + str;
+}
+function debug5(str) {
+    var debugDiv = document.getElementById('debug5');
+    debugDiv.innerHTML = "" + str;
+}
+function debug6(str) {
+    var debugDiv = document.getElementById('debug5');
+    debugDiv.innerHTML = "" + str;
+}
+function stat(str) {
+    var debugDiv = document.getElementById('stat');
+    debugDiv.innerHTML += "<br/>" + str;
+}
+
+
+var wsRep = 0;
+function wsSetup() {
+    var socket = new WebSocket("ws://"+host+"/ws/");
+    socket.binaryType = "arraybuffer";
+    var connected = false;
+    socket.onopen = function() {
+        socket.send(index);
+        connected = true;
+    };
+    socket.onerror = function(msg) {
+        alert(msg);
+    };
+    socket.onmessage = function(msg) {  
+        //alert(msg.data);
+        try {
+            debug4(msg.data.byteLength);
+            addBuffer(msg.data);
+            debug1("Add Buffer " + index);
+        } catch (e) {
+            alert("socket on message: " + e);
+        }
+    }; 
+    wsRep = function() { 
+        if (connected) {
+            socket.send(index); 
+        }
+    };
+}
+
+function init() {
+    try {
+        // Fix up prefixing
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        context = new AudioContext();
+    } catch (e) {
+        alert("WEbaudio"+e);
+    }
+    try {
+        //scriptNodeStream(reqSoundRep);
+        wsSetup();
+        scriptNodeStream(wsRep);
+        //setInterval(reqSoundRep,(len)/44100 * 1000);
+    } catch (e) {
+        alert("ScriptNodeStream:" + e);
+    }
+}
+
+function sum(v) {
+    var s = 0.0;
+    var n = 0;
+    for (var i = 0 ; i < len ; i++) {
+        if (!isNaN(v[i])) {
+            s += v[i];
+        } else {
+            n++;
+        }
+    }
+    if (n > 0) {
+        debug6(n);
+    }
+    return s;
+}
+function zeros(len) {
+    var zerodarray = new Float32Array(len);
+    for (var i = 0 ; i < len ; i++) {
+        zerodarray[i] = 0.0;
+    }
+    return zerodarray;
+}
+
+
+
+var lastbuff = zeros(len);
+var lastTime = 0;
+function scriptNodeStream(cb) {
+    cb();
+    var node = context.createScriptProcessor(len, 0, 1);
+    node.onaudioprocess = function(event) {
+        debug(event.playbackTime - lastTime);
+        lastTime = event.playbackTime;
+        try {
+            if (buffers.length > 0) {            
+                var buff = buffers.shift();
+                debug2("Playing maybe " + (index - buffers.length) + " / " + index + " " + buffers.length);
+                debug3("Buff length "+buff.length + " " + sum(buff));
+                event.outputBuffer.getChannelData(0).set(buff);
+                abCallback( buff );
+                //buff = null;
+            } else {
+                debug3("EMPTY!");
+                event.outputBuffer.getChannelData(0).set(lastbuff);
+                //alert("Empty");
+            }
+            cb();
+        } catch(e) {
+            alert("OnAudioProcess:" + e);
+        };
+    };
+    node.connect(context.destination);    
+}
+window.onload = init;
+
+</script>
+</body>
+</html>
