@@ -273,7 +273,7 @@ function scriptNodeStream(cb) {
             }
             cb();
         } catch(e) {
-            alert("OnAudioProcess:" + e);
+            debug1("OnAudioProcess:" + e);
         };
     };
     node.connect(context.destination);    
