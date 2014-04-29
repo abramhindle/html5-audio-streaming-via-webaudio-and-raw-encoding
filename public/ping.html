@@ -97,9 +97,9 @@ function silence() {
 function addBuffer(buffer) {
     try {
         if (buffers.length > 20) {
+            debug6("Dumping!"+buffers.length+" "+now());
             while (buffers.length > 1) {
                 buffers.shift();
-                debug6("Dumping!"+buffers.length+" "+now());
             }
         }
         //var buff = new Int16Array(buffer);
