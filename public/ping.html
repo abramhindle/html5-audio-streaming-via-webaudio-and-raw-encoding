@@ -97,7 +97,7 @@ function silence() {
 function addBuffer(buffer) {
     try {
         if (buffers.length > 20) {
-            while (buffers.length > 0) {
+            while (buffers.length > 1) {
                 buffers.shift();
                 debug6("Dumping!"+buffers.length+" "+now());
             }
