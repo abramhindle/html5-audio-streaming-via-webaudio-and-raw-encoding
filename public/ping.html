@@ -96,12 +96,13 @@ function silence() {
 
 function addBuffer(buffer) {
     try {
+        /*
         if (buffers.length > 20) {
             debug6("Dumping!"+buffers.length+" "+now());
             while (buffers.length > 1) {
                 buffers.shift();
             }
-        }
+        }*/
         //var buff = new Int16Array(buffer);
         var buff = new Float32Array(buffer);
         buffers.push(buff);
