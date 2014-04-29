@@ -99,7 +99,7 @@ function addBuffer(buffer) {
         if (buffers.length > 20) {
             while (buffers.length > 0) {
                 buffers.shift();
-                debug6("Dumping!"+buffers.length);
+                debug6("Dumping!"+buffers.length+" "+now());
             }
         }
         //var buff = new Int16Array(buffer);
